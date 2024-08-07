@@ -33,11 +33,11 @@ try
     {
         int personId = GetPersonName();
         Console.WriteLine(personId);
-        PrintReport("Person", personId, dataList, people);    
+        PrintReport("Person", personId, dataList, people, accounts);    
     }
     else
     {
-        PrintReport("ALL", 0 , dataList, people);  
+        PrintReport("ALL", 0 , dataList, people, accounts);  
     }
 }
 catch (IOException e)
@@ -81,14 +81,16 @@ int GetPersonName()
     return personId;
 }
 
-void PrintReport(string listType, int personId, List<Transaction> dataList, List<Person> people)
+void PrintReport(string listType, int personId, List<Transaction> dataList, List<Person> people, List<Account> accounts)
 {
 
+ 
     if (listType == "ALL")
     {
-        foreach (var transaction in dataList)
+        foreach (var account in accounts)
         {
-        Console.WriteLine($"Transaction Date: {transaction.TxnDate} From Name: {transaction.FromPerson} , To Person: {transaction.ToPerson} , Narrative: {transaction.Narrative}, Amount Owed: {transaction.Amount}");    
+            Person? person = people.Find(p => p.Id == account.PersonId);
+            Console.WriteLine($"Person Id: {account.PersonId} Name: {person.Name} , Amount Owes: {account.AmountOwes} , Amount Owed: {account.AmountOwed}");
         }
     }
     else
@@ -216,7 +218,6 @@ void CreateAccountSummary()
 {
 
         // loop round each person, and get total amount owed and owes from the transaction file (total amount)
-
         foreach (Person person in people)
         {
             Account account = new Account()
@@ -226,7 +227,7 @@ void CreateAccountSummary()
                 AmountOwed = newTransactions.FindAll(txn => txn.FromPersonID == person.Id).Sum(txn => txn.Amount),
             };
             accounts.Add(account);
-            Console.WriteLine($"Person Id: {account.PersonId} Name: {person.Name} , Amount Owes: {account.AmountOwes} , Amount Owed: {account.AmountOwed}");
+            //Console.WriteLine($"Person Id: {account.PersonId} Name: {person.Name} , Amount Owes: {account.AmountOwes} , Amount Owed: {account.AmountOwed}");
         }
 
 }
