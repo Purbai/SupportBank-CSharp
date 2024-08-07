@@ -1,5 +1,6 @@
 ﻿using System.Data.Common;
 using System.Dynamic;
+//using Newtonsoft.Json;
 
 List<Person> people = new List<Person>();
 List<Transaction> transactions = new List<Transaction>();
@@ -8,11 +9,11 @@ List<Account> accounts = new List<Account>();
 
 try
 {
-
     // Open the text file using a stream reader.
     string filePath = "Transactions2014.csv";
+    //string filePath = "Transactions2013.json";
     List<Transaction> dataList = new List<Transaction>();
-    ReadTxnFile (filePath, dataList);
+    ReadCSVTxnFile (filePath, dataList);
 
     // create list of person from the transaction table (for both the fromPerson and toPerson)
     CreateNewPerson("From", dataList);
@@ -32,6 +33,11 @@ try
     {
         int personId = GetPersonName();
         Console.WriteLine(personId);
+        PrintReport("Person", personId, dataList, people);    
+    }
+    else
+    {
+        PrintReport("ALL", 0 , dataList, people);  
     }
 }
 catch (IOException e)
@@ -59,6 +65,7 @@ int GetPersonName()
 
     while (true)
     {
+        // should try to do a dropdown list that user can select from - we already have the list of names in Person class
         Console.Write("Enter Person Name (enter Exit to quit): ");
         string personName = Console.ReadLine();
 
@@ -74,12 +81,30 @@ int GetPersonName()
     return personId;
 }
 
-void ListAccount()
+void PrintReport(string listType, int personId, List<Transaction> dataList, List<Person> people)
 {
 
+    if (listType == "ALL")
+    {
+        foreach (var transaction in dataList)
+        {
+        Console.WriteLine($"Transaction Date: {transaction.TxnDate} From Name: {transaction.FromPerson} , To Person: {transaction.ToPerson} , Narrative: {transaction.Narrative}, Amount Owed: {transaction.Amount}");    
+        }
+    }
+    else
+    {
+        // list all transactions for a person
+        Person? person = people.Find(p => p.Id == personId);
+        List<Transaction> filteredTxn = dataList.FindAll(txn => txn.FromPerson == person.Name || txn.ToPerson == person.Name);
+        foreach (var transaction in filteredTxn)
+        {
+            Console.WriteLine($"Transaction Date: {transaction.TxnDate} From Name: {transaction.FromPerson} , To Person: {transaction.ToPerson} , Narrative: {transaction.Narrative}, Amount Owed: {transaction.Amount}");    
+        }
+    }
 }
 
-void ReadTxnFile (string filePath, List<Transaction> dataList)
+
+void ReadCSVTxnFile (string filePath, List<Transaction> dataList)
 {
     using (var reader = new StreamReader(filePath))
     {
@@ -89,21 +114,54 @@ void ReadTxnFile (string filePath, List<Transaction> dataList)
         {
             var line = reader.ReadLine();
             var values = line.Split(',');
-
+            // check if value is decimal
+            // if (decimal.TryParse(values[4], out _))
+            // {
+            // it's decimal
             var data = new Transaction
             {
                 TxnDate = DateOnly.Parse(values[0]),
                 FromPerson = values[1],
                 ToPerson = values[2],
                 Narrative = values[3],
-                Amount = Decimal.Parse(values[4])
 
+                    Amount = Decimal.Parse(values[4])
+
+
+            };
+            dataList.Add(data);
+            // }
+            // else
+            // {
+            //     Console.WriteLine($"Invalid record date: {values[0]}, loan from person {values[1]} loaned to {values[2]} for {values[3]} amount: {values[4]} ");
+            // };
+
+        }
+    }
+}
+
+/* void ReadJsonFile(string filePath, List<Transaction> dataList)
+{
+    using (StreamReader r = new StreamReader(filePath))
+    {
+        string json = r.ReadToEnd();
+        List<Transaction> items = JsonConvert.DeserializeObject<List<Transaction>>(json);
+        foreach (var item in items)
+        {
+            //Console.WriteLine($"{item.Id} {item.Name}");
+            var data = new Transaction
+            {
+                TxnDate = DateOnly.Parse(item.date),
+                FromPerson = item.FromAccount,
+                ToPerson = item.toAccount,
+                Narrative = item.Narrative,
+                Amount = Decimal.Parse(item.Amount)
             };
 
             dataList.Add(data);
         }
     }
-}
+} */
 
 void TxnWithPersonID(List<Transaction> dataList)
 {        foreach (var transaction in dataList)
