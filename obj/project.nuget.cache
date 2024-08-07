@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "08pSyKTtskU=",
+  "dgSpecHash": "ra4y0GkM/XE=",
   "success": true,
   "projectFilePath": "C:\\training\\SupportBank-CSharp\\SupportBank-CSharp.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\PurVar\\.nuget\\packages\\nlog\\5.3.2\\nlog.5.3.2.nupkg.sha512"
+  ],
   "logs": []
 }

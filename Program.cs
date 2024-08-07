@@ -1,16 +1,25 @@
 ﻿using System.Data.Common;
 using System.Dynamic;
 //using Newtonsoft.Json;
+using NLog;
+using NLog.Config;
+using NLog.Targets;
+
+var config = new LoggingConfiguration();
+var target = new FileTarget { FileName = @"C:\training\SupportBank-CSharp\log\SupportBank.log", Layout = @"${longdate} ${level} - ${logger}: ${message}" };
+config.AddTarget("File Logger", target);
+config.LoggingRules.Add(new LoggingRule("*", LogLevel.Debug, target));
+LogManager.Configuration = config;
 
 List<Person> people = new List<Person>();
 List<Transaction> transactions = new List<Transaction>();
 List<NewTransaction> newTransactions = new List<NewTransaction>();
 List<Account> accounts = new List<Account>();
-
 try
 {
     // Open the text file using a stream reader.
-    string filePath = "Transactions2014.csv";
+    string filePath = "DodgyTransactions2015.csv";
+    //string filePath = "Transactions2014.csv";
     //string filePath = "Transactions2013.json";
     List<Transaction> dataList = new List<Transaction>();
     ReadCSVTxnFile (filePath, dataList);
@@ -108,6 +117,7 @@ void PrintReport(string listType, int personId, List<Transaction> dataList, List
 
 void ReadCSVTxnFile (string filePath, List<Transaction> dataList)
 {
+var log = LogManager.GetCurrentClassLogger();
     using (var reader = new StreamReader(filePath))
     {
         // want to ignore the first line since it is the header
@@ -117,27 +127,23 @@ void ReadCSVTxnFile (string filePath, List<Transaction> dataList)
             var line = reader.ReadLine();
             var values = line.Split(',');
             // check if value is decimal
-            // if (decimal.TryParse(values[4], out _))
-            // {
-            // it's decimal
+            try {
             var data = new Transaction
             {
                 TxnDate = DateOnly.Parse(values[0]),
                 FromPerson = values[1],
                 ToPerson = values[2],
                 Narrative = values[3],
-
-                    Amount = Decimal.Parse(values[4])
-
-
+                Amount = Decimal.Parse(values[4])
             };
             dataList.Add(data);
-            // }
-            // else
-            // {
-            //     Console.WriteLine($"Invalid record date: {values[0]}, loan from person {values[1]} loaned to {values[2]} for {values[3]} amount: {values[4]} ");
-            // };
-
+            }
+            catch
+            {
+                // we have some bad data in the file
+                log.Warn( $"Invalid record -  date: {values[0]}, loan from person {values[1]} loaned to {values[2]} for {values[3]} amount: {values[4]} ");
+                Console.WriteLine("Found a bad row - Pls check the log\\SupportBank.log");
+            };
         }
     }
 }
@@ -247,6 +253,9 @@ public class Person
 
 public class Transaction
 {
+    
+    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
+
     public DateOnly TxnDate { get; set; }
     public string FromPerson { get; set; } = "";
     public string ToPerson { get; set; } = "";
