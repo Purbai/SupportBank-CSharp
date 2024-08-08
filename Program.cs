@@ -55,7 +55,7 @@ try
     // Get the user to select which report to produce (on screen or to file)
     int option = GetReportOption();
 
-    string ExportFileName = "";
+    string exportFileName = "";
     switch (option)
     {
         case 1:
@@ -69,20 +69,20 @@ try
         case 3:
 
             // get file name from the user
-            ExportFileName = GetExportFileName();
-            if (ExportFileName != "")
+            exportFileName = GetExportFileName();
+            if (exportFileName != "")
             {
                 // export the account summary to a file
-                ExportAccountSummaryToFile(ExportFileName, accounts);
+                ExportAccountSummaryToFile(exportFileName, accounts);
             }
             break;
         case 4:
             // get file name from the user
-            ExportFileName = GetExportFileName();
-            if (ExportFileName != "")
+            exportFileName = GetExportFileName();
+            if (exportFileName != "")
             {
                 // export the transactions for a person to a file
-                ExportPersonTxnToFile(ExportFileName, transactionList);
+                ExportPersonTxnToFile(exportFileName, transactionList);
             }
             break;
         default:
@@ -143,24 +143,24 @@ string GetExportFileName()
     Console.WriteLine("Enter path to write the export file to ");
     string filePath = Console.ReadLine();
     int slashFound = filePath.LastIndexOf("\\");
-    string ExportFileName = "";
+    string exportFileName = "";
     if (slashFound != -1)
-        ExportFileName = string.Concat(filePath, fileName, ".csv");
+        exportFileName = string.Concat(filePath, fileName, ".csv");
     else
-        ExportFileName = string.Concat(filePath, "\\", fileName, ".csv");
+        exportFileName = string.Concat(filePath, "\\", fileName, ".csv");
     // check if this file exist
-    if (File.Exists(ExportFileName))
+    if (File.Exists(exportFileName))
     {
         // file already exist - hence warn user and exit
-        log.Warn($"Export file name provided already exist : {ExportFileName} ");
+        log.Warn($"Export file name provided already exist : {exportFileName} ");
         Console.WriteLine("File name already exists - see .\\log\\SupportBank.log");
-        ExportFileName = "";
+        exportFileName = "";
     }
     else
     {
-        log.Info($"Exporting data to file name : {ExportFileName} ");
+        log.Info($"Exporting data to file name : {exportFileName} ");
     }
-    return ExportFileName;
+    return exportFileName;
 }
 
 int GetPersonName()
