@@ -7,100 +7,106 @@ using NLog.Targets;
 using System.Xml;
 
 var config = new LoggingConfiguration();
+// output to .\log\SupportBank.log file - each log will have a long datetime and type of log msg, name of the projectfile and the msg
 var target = new FileTarget { FileName = @"C:\training\SupportBank-CSharp\log\SupportBank.log", Layout = @"${longdate} ${level} - ${logger}: ${message}" };
 config.AddTarget("File Logger", target);
 config.LoggingRules.Add(new LoggingRule("*", LogLevel.Debug, target));
 LogManager.Configuration = config;
 
 List<Person> people = new List<Person>();
-//List<Transaction> transactions = new List<Transaction>();
 List<NewTransaction> newTransactions = new List<NewTransaction>();
 List<Account> accounts = new List<Account>();
-List<Transaction> dataList = new List<Transaction>();
+List<Transaction> transactionList = new List<Transaction>();
 try
 {
     // Open the text file using a stream reader.
     string filePath = "";
-    // get user to enter the filename
+    // get user to enter the filename and find the extension since processing will be different for different types of extensions
     filePath = GetFileName();
     int index = filePath.IndexOf(".") + 1;
     string fileExtension = filePath.Substring(index);
-    Console.WriteLine($"fileExtension: {fileExtension}");
-    switch(fileExtension)
+    switch (fileExtension)
     {
         case "json":
-        ReadJsonFile(filePath, dataList);
-        break;
+            ReadJsonFile(filePath, transactionList);
+            break;
         case "csv":
-        ReadCSVTxnFile(filePath, dataList);
-        break;
-   case "xml":
-        readXMLFile(filePath, dataList);
-        break;   
-    default:
-        Console.WriteLine("File name not provided - exiting ");
-        // file name not provided so exit
-        return;
+            ReadCSVTxnFile(filePath, transactionList);
+            break;
+        case "xml":
+            readXMLFile(filePath, transactionList);
+            break;
+        default:
+            Console.WriteLine("File name not provided - exiting ");
+            // file name not provided so exit
+            return;
     };
 
     // create list of people from the transaction table (for both the fromPerson and toPerson)
-    CreateNewPerson("From", dataList);
-    CreateNewPerson("To", dataList);
+    CreateNewPerson("From", transactionList);
+    CreateNewPerson("To", transactionList);
 
     // create a new transation class replacing person names with person IDs (that were generated above)
-    CreateTxnWithPersonID(dataList);
+    CreateTxnWithPersonID(transactionList);
 
     // call the function to list the accounts
     CreateAccountSummary();
 
     // Get the user to select which report to produce (on screen or to file)
-    int option = GetReportOutputOption();
+    int option = GetReportOption();
 
     string ExportFileName = "";
     switch (option)
     {
         case 1:
-        // output report data to screen for summary
-        PrintReport("ALL", 0, dataList, people, accounts);
-        break;
-    case 2:
-        int personId = GetPersonName();
-        PrintReport("Person", personId, dataList, people, accounts);
-        break;
+            // output report data to screen for summary
+            PrintReport("Account", 0, transactionList, people, accounts);
+            break;
+        case 2:
+            int personId = GetPersonName();
+            PrintReport("Person", personId, transactionList, people, accounts);
+            break;
+        case 3:
 
-    case 3:
-        // export the transactions for a person to a file
-        // get file name from the user
-        ExportFileName = GetExportFileName();
-        ExportAccountSummaryToFile(ExportFileName, accounts);
-        break;
-    case 4:
-        // export the account summary to a file
-        ExportFileName = GetExportFileName();
-        ExportPersonTxnToFile(ExportFileName, dataList);
-        break;
-    default:
-        break;
+            // get file name from the user
+            ExportFileName = GetExportFileName();
+            if (ExportFileName != "")
+            {
+                // export the account summary to a file
+                ExportAccountSummaryToFile(ExportFileName, accounts);
+            }
+            break;
+        case 4:
+            // get file name from the user
+            ExportFileName = GetExportFileName();
+            if (ExportFileName != "")
+            {
+                // export the transactions for a person to a file
+                ExportPersonTxnToFile(ExportFileName, transactionList);
+            }
+            break;
+        default:
+            break;
     }
-
 }
 catch (IOException e)
 {
-    Console.WriteLine("The file could not be read");
-    Console.WriteLine(e.Message);
+    var log = LogManager.GetCurrentClassLogger();
+    Console.WriteLine("Exception found - exiting");
+    log.Info($" Exception found - exiting {e.Message} ");
 }
 
 // Functions
-int GetReportOutputOption()
+int GetReportOption()
 {
     Console.WriteLine("Select option:");
-    Console.WriteLine("1. List Account Summary");
-    Console.WriteLine("2. List Detail Account for a Person");
+    Console.WriteLine("1. List Account Summary to screen");
+    Console.WriteLine("2. List Detail Account for a Person to screen");
     Console.WriteLine("3. Extract Account Summary to a CSV file");
     Console.WriteLine("4. Extract Detail Account for a Person to a CSV file");
     Console.Write("Option:");
     int option = int.Parse(Console.ReadLine());
-    if (option < 1 || option >4)
+    if (option < 1 || option > 4)
     {
         // valid option not selected 
         option = 0;  // default option to 0
@@ -111,8 +117,9 @@ int GetReportOutputOption()
 string GetFileName()
 {
     var log = LogManager.GetCurrentClassLogger();
-    Console.WriteLine("Enter transaction filename to export data from (including path and extension)");
+    Console.WriteLine("Enter transaction filename to import data from (including path and extension)");
     string fileName = Console.ReadLine();
+    Console.WriteLine($"file name entered: {fileName}");
     // check if this file exist
     if (!File.Exists(fileName))
     {
@@ -123,7 +130,7 @@ string GetFileName()
     }
     else
     {
-        log.Info($"Valid file - Reading file name : {fileName} ");
+        log.Info($"Valid file - Reading data from file name : {fileName} ");
     }
     return fileName;
 }
@@ -131,16 +138,21 @@ string GetFileName()
 string GetExportFileName()
 {
     var log = LogManager.GetCurrentClassLogger();
-    Console.WriteLine("Enter filename to export to (including extension)");
+    Console.WriteLine("Enter filename to export to (will generate CSV file)");
     string fileName = Console.ReadLine();
     Console.WriteLine("Enter path to write the export file to ");
     string filePath = Console.ReadLine();
-    string ExportFileName = string.Concat(filePath, fileName);
+    int slashFound = filePath.LastIndexOf("\\");
+    string ExportFileName = "";
+    if (slashFound != -1)
+        ExportFileName = string.Concat(filePath, fileName, ".csv");
+    else
+        ExportFileName = string.Concat(filePath, "\\", fileName, ".csv");
     // check if this file exist
     if (File.Exists(ExportFileName))
     {
-        // we have some bad data in the file
-        log.Warn($"Export file name provided : {ExportFileName} ");
+        // file already exist - hence warn user and exit
+        log.Warn($"Export file name provided already exist : {ExportFileName} ");
         Console.WriteLine("File name already exists - see .\\log\\SupportBank.log");
         ExportFileName = "";
     }
@@ -155,15 +167,14 @@ int GetPersonName()
 {
     int personId = 0;
     Person person;
-
     while (true)
     {
         // should try to do a dropdown list that user can select from - we already have the list of names in Person class
         Console.Write("Enter Person Name (enter Exit to quit): ");
         string personName = Console.ReadLine();
-
+        // Exit entered hence quit
         if (personName == "Exit") break;
-
+        // check if the person is valid by checking against people list
         person = people.Find(p => p.Name == personName);
         if (person != null)
         {
@@ -171,14 +182,13 @@ int GetPersonName()
             break;
         }
     }
-
-    return personId;
+    return personId;  // return the person ID
 }
 
-void PrintReport(string listType, int personId, List<Transaction> dataList, List<Person> people, List<Account> accounts)
+void PrintReport(string listType, int personId, List<Transaction> txnList, List<Person> people, List<Account> accounts)
 {
 
-    if (listType == "ALL")
+    if (listType == "Account")
     {
         foreach (var account in accounts)
         {
@@ -190,7 +200,7 @@ void PrintReport(string listType, int personId, List<Transaction> dataList, List
     {
         // list all transactions for a person
         Person? person = people.Find(p => p.Id == personId);
-        List<Transaction> filteredTxn = dataList.FindAll(txn => txn.FromPerson == person.Name || txn.ToPerson == person.Name);
+        List<Transaction> filteredTxn = txnList.FindAll(txn => txn.FromPerson == person.Name || txn.ToPerson == person.Name);
         foreach (var transaction in filteredTxn)
         {
             Console.WriteLine($"Transaction Date: {transaction.TxnDate} From Name: {transaction.FromPerson} , To Person: {transaction.ToPerson} , Narrative: {transaction.Narrative}, Amount Owed: {transaction.Amount}");
@@ -199,7 +209,7 @@ void PrintReport(string listType, int personId, List<Transaction> dataList, List
 }
 
 
-void ReadCSVTxnFile(string filePath, List<Transaction> dataList)
+void ReadCSVTxnFile(string filePath, List<Transaction> txnList)
 {
     var log = LogManager.GetCurrentClassLogger();
     using (var reader = new StreamReader(filePath))
@@ -221,7 +231,7 @@ void ReadCSVTxnFile(string filePath, List<Transaction> dataList)
                     Narrative = values[3],
                     Amount = Decimal.Parse(values[4])
                 };
-                dataList.Add(data);
+                txnList.Add(data);
             }
             catch
             {
@@ -233,7 +243,7 @@ void ReadCSVTxnFile(string filePath, List<Transaction> dataList)
     }
 }
 
-void ReadJsonFile(string filePath, List<Transaction> dataList)
+void ReadJsonFile(string filePath, List<Transaction> txnList)
 {
     var log = LogManager.GetCurrentClassLogger();
     using (StreamReader r = new StreamReader(filePath))
@@ -254,7 +264,7 @@ void ReadJsonFile(string filePath, List<Transaction> dataList)
                     Narrative = item.Narrative,
                     Amount = item.Amount
                 };
-                dataList.Add(data);
+                txnList.Add(data);
             }
             catch
             {
@@ -266,7 +276,7 @@ void ReadJsonFile(string filePath, List<Transaction> dataList)
     }
 }
 
-void readXMLFile(string filePath, List<Transaction> dataList)
+void readXMLFile(string filePath, List<Transaction> txnList)
 {
     DateTime convertedDate = new DateTime();
     string description = "";
@@ -307,7 +317,7 @@ void readXMLFile(string filePath, List<Transaction> dataList)
             {
                 if (reader.Name.ToString() == "SupportTransaction")
                 {
-                    dataList.Add(
+                    txnList.Add(
                         new Transaction()
                         {
                             TxnDate = DateOnly.FromDateTime(convertedDate),
@@ -323,13 +333,13 @@ void readXMLFile(string filePath, List<Transaction> dataList)
     }
 }
 
-void ExportPersonTxnToFile(string fileName, List<Transaction> dataList)
+void ExportPersonTxnToFile(string fileName, List<Transaction> txnList)
 {
     using (StreamWriter exportedFile = new StreamWriter(fileName))
     {
         // write out a header row...
         exportedFile.WriteLine("Transaction Date, From Person, To Person, Narrative, Amount");
-        foreach (Transaction transaction in dataList)
+        foreach (Transaction transaction in txnList)
         {
             exportedFile.WriteLine($"{transaction.TxnDate.ToShortDateString()},{transaction.FromPerson},{transaction.ToPerson},{transaction.Narrative},{transaction.Amount}");
         }
@@ -350,9 +360,9 @@ void ExportAccountSummaryToFile(string fileName, List<Account> accounts)
     }
 }
 
-void CreateTxnWithPersonID(List<Transaction> dataList)
+void CreateTxnWithPersonID(List<Transaction> txnList)
 {
-    foreach (var transaction in dataList)
+    foreach (var transaction in txnList)
     {
         // find the from & to person name in the Person class
         // if name found, get Person ID
@@ -373,17 +383,17 @@ void CreateTxnWithPersonID(List<Transaction> dataList)
     }
 }
 
-void CreateNewPerson(string personType, List<Transaction> dataList)
+void CreateNewPerson(string personType, List<Transaction> txnList)
 {
     List<Transaction> sortedTxn;
     // sort the transaction data by From Person and add the person to Person class if not already there
     if (personType == "To")
     {
-        sortedTxn = dataList.OrderBy(o => o.ToPerson).ToList();
+        sortedTxn = txnList.OrderBy(o => o.ToPerson).ToList();
     }
     else
     {
-        sortedTxn = dataList.OrderBy(o => o.FromPerson).ToList();
+        sortedTxn = txnList.OrderBy(o => o.FromPerson).ToList();
     };
 
     // List<Person> people = new List<Person>;
@@ -415,55 +425,4 @@ void CreateAccountSummary()
         //Console.WriteLine($"Person Id: {account.PersonId} Name: {person.Name} , Amount Owes: {account.AmountOwes} , Amount Owed: {account.AmountOwed}");
     }
 
-}
-
-// Data Structures
-public class Person
-{
-    private static int lastId = 0;
-    public int Id { get; set; }
-    public string Name { get; set; } = "";
-    public Person(string name)
-    {
-        Id = ++lastId;
-        Name = name;
-    }
-}
-
-public class Transaction
-{
-
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
-
-    public DateOnly TxnDate { get; set; }
-    public string FromPerson { get; set; } = "";
-    public string ToPerson { get; set; } = "";
-    public string Narrative { get; set; } = "";
-    public decimal Amount { get; set; }
-}
-public class TransactionJson
-{
-    private static readonly ILogger Logger = LogManager.GetCurrentClassLogger();
-    public string Date { get; set; }
-    public string FromAccount { get; set; } = "";
-    public string ToAccount { get; set; } = "";
-    public string Narrative { get; set; } = "";
-    public decimal Amount { get; set; }
-}
-
-
-public class NewTransaction
-{
-    public DateOnly TxnDate { get; set; }
-    public int FromPersonID { get; set; }
-    public int ToPersonID { get; set; }
-    public string Narrative { get; set; } = "";
-    public decimal Amount { get; set; }
-}
-
-public class Account
-{
-    public int PersonId { get; set; }
-    public decimal AmountOwed { get; set; }
-    public decimal AmountOwes { get; set; }
 }
