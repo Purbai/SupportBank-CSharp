@@ -5,6 +5,8 @@ using NLog;
 using NLog.Config;
 using NLog.Targets;
 using System.Xml;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
 
 var config = new LoggingConfiguration();
 // output to .\log\SupportBank.log file - each log will have a long datetime and type of log msg, name of the projectfile and the msg
@@ -22,7 +24,8 @@ try
     // Open the text file using a stream reader.
     string filePath = "";
     // get user to enter the filename and find the extension since processing will be different for different types of extensions
-    filePath = GetFileName();
+    // filePath = GetFileName();
+    filePath = GetFileNameFromDir();
     int index = filePath.IndexOf(".") + 1;
     string fileExtension = filePath.Substring(index);
     switch (fileExtension)
@@ -58,15 +61,15 @@ try
     string exportFileName = "";
     switch (option)
     {
-        case 1:
+        case 0:
             // output report data to screen for summary
             PrintReport("Account", 0, transactionList, people, accounts);
             break;
-        case 2:
+        case 1:
             int personId = GetPersonName();
             PrintReport("Person", personId, transactionList, people, accounts);
             break;
-        case 3:
+        case 2:
 
             // get file name from the user
             exportFileName = GetExportFileName();
@@ -76,7 +79,7 @@ try
                 ExportAccountSummaryToFile(exportFileName, accounts);
             }
             break;
-        case 4:
+        case 3:
             // get file name from the user
             exportFileName = GetExportFileName();
             if (exportFileName != "")
@@ -99,23 +102,118 @@ catch (IOException e)
 // Functions
 int GetReportOption()
 {
-    Console.WriteLine("Select option:");
-    Console.WriteLine("1. List Account Summary to screen");
-    Console.WriteLine("2. List Detail Account for a Person to screen");
-    Console.WriteLine("3. Extract Account Summary to a CSV file");
-    Console.WriteLine("4. Extract Detail Account for a Person to a CSV file");
-    Console.Write("Option:");
-    int option = int.Parse(Console.ReadLine());
-    if (option < 1 || option > 4)
-    {
-        // valid option not selected 
-        option = 0;  // default option to 0
-    }
-    return option;
+    // list the report types
+    string[] reportOptions = [];
+    Array.Resize(ref reportOptions, 4);
+    reportOptions[0] = "List Account Summary to screen";
+    reportOptions[1] = "List Detail Account for a Person to screen";
+    reportOptions[2] = "Extract Account Summary to a CSV fil";
+    reportOptions[3] = "Extract Detail Account for a Person to a CSV file";
+
+    // call the downdrop function to allow user to select report that they want to produce
+    string selectedOption = DropdownList(reportOptions);
+    int option = Array.IndexOf(reportOptions,selectedOption);
+
+    return option; 
 }
 
-string GetFileName()
+void InputNewTxns()
 {
+// Create a loop to read the input from user - need someway for the user to exit the loop after they have finished entering new transactions
+// read the input (txn date, from Person, to Person, Narrative, Ammount)
+// none of the columns can be null, 
+// if to/from person is not in people list, then ask user if they want to correct the input or it is a new person (if new, add to people list)
+// we can ask the user to read all fields from same line (fields seperated by ,)
+
+// if the txn data is the year that in any of the filenames from GetFileListFromDir(), then add the new transaction that file
+// else create a new txn file (csv format) - filename = data\Transactions<year>.csv + header record 
+// if year is before 2012, or year is 2014 or later, then format of file is CSV
+// if year is 2013, then format is json
+// if year is 2012, then format is xml
+
+// run reports for impact years that the user has entered new txns
+
+}
+
+string GetFileNameFromDir()
+{
+    string directoryPath = "";
+    var log = LogManager.GetCurrentClassLogger();
+    // get directory path
+    // get list of data files from the path
+    // allow user to select on of the file name from the directory list or exit
+    while (true)
+    {
+        Console.WriteLine("Enter the directory name (enter 'Exit' to quit): ");
+        directoryPath = Console.ReadLine();
+
+        if (directoryPath == "Exit")
+            break;
+
+        if (!Directory.Exists(directoryPath))
+        {
+            Console.WriteLine($"This directory, {directoryPath} does not exist");
+            continue;
+        }
+        break;
+    }
+
+    string[] listOfFiles = Directory.GetFiles(directoryPath);
+
+    return DropdownList(listOfFiles);
+}
+
+
+string DropdownList(string[] listOfOptions)
+{
+    Array.Resize(ref listOfOptions, listOfOptions.Length + 1);
+     listOfOptions[listOfOptions.Length - 1] = "Exit";
+
+    int selectedIndex = 0;
+    Console.WriteLine($"Options List: {listOfOptions[listOfOptions.Length - 1]}");
+
+  ConsoleKey key;
+    do
+    {
+        Console.Clear();
+        Console.WriteLine("Use the arrow keys to navigate and Enter to select:");
+
+        for (int i = 0; i < listOfOptions.Length; i++)
+        {
+            if (i == selectedIndex)
+            {
+                Console.BackgroundColor = ConsoleColor.Gray;
+                Console.ForegroundColor = ConsoleColor.Black;
+            }
+            Console.WriteLine(listOfOptions[i]);
+            Console.ResetColor();
+        }
+
+        key = Console.ReadKey().Key;
+
+        if (key == ConsoleKey.UpArrow)
+        {
+            selectedIndex = (selectedIndex == 0) ? listOfOptions.Length - 1 : selectedIndex - 1;
+        }
+        else if (key == ConsoleKey.DownArrow)
+        {
+            selectedIndex = (selectedIndex == listOfOptions.Length - 1) ? 0 : selectedIndex + 1;
+        }
+
+    } while (key != ConsoleKey.Enter);
+
+    Console.WriteLine($"You selected: {listOfOptions[selectedIndex]}");  
+
+    return listOfOptions[selectedIndex];
+}
+
+/* string GetFileName()
+{
+
+// get directory path
+// get list of data files from the path
+// allow user to select on of the file name from the directory list or exit
+
     var log = LogManager.GetCurrentClassLogger();
     Console.WriteLine("Enter transaction filename to import data from (including path and extension)");
     string fileName = Console.ReadLine();
@@ -133,7 +231,7 @@ string GetFileName()
         log.Info($"Valid file - Reading data from file name : {fileName} ");
     }
     return fileName;
-}
+} */
 
 string GetExportFileName()
 {
