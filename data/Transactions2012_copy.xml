@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <TransactionList>
   <SupportTransaction Date="40909">
     <Description>Snooker Night</Description>
@@ -1190,46 +1190,6 @@
     <Parties>
       <From>Tim L</From>
       <To>Todd</To>
-    </Parties>
-  </SupportTransaction>
-  <SupportTransaction Date="40909">
-    <Description>Robert and Purbai friday morning programming</Description>
-    <value>9.22</value>
-    <Parties>
-      <From>Robert</From>
-      <To>Purbai</To>
-    </Parties>
-  </SupportTransaction>
-  <SupportTransaction Date="40936.00:00:00">
-    <Description>Going to Paris</Description>
-    <value>7.58</value>
-    <Parties>
-      <From>Kiran</From>
-      <To>Sasha</To>
-    </Parties>
-  </SupportTransaction>
-  <SupportTransaction Date="40936.00:00:00">
-    <Description>Afternoon Tea</Description>
-    <value>45.58</value>
-    <Parties>
-      <From>Robert</From>
-      <To>Purbai</To>
-    </Parties>
-  </SupportTransaction>
-  <SupportTransaction Date="40936">
-    <Description>Going to Paris</Description>
-    <value>7.58</value>
-    <Parties>
-      <From>Kiran</From>
-      <To>Sasha</To>
-    </Parties>
-  </SupportTransaction>
-  <SupportTransaction Date="40936">
-    <Description>Afternoon Tea</Description>
-    <value>45.58</value>
-    <Parties>
-      <From>Robert</From>
-      <To>Purbai</To>
     </Parties>
   </SupportTransaction>
 </TransactionList>
