@@ -21,6 +21,7 @@ List<Account> accounts = new List<Account>();
 List<Transaction> transactionList = new List<Transaction>();
 try
 {
+    InputNewTxns();
     // Open the text file using a stream reader.
     string filePath = "";
     // get user to enter the filename and find the extension since processing will be different for different types of extensions
@@ -112,32 +113,97 @@ int GetReportOption()
 
     // call the downdrop function to allow user to select report that they want to produce
     string selectedOption = DropdownList(reportOptions);
-    int option = Array.IndexOf(reportOptions,selectedOption);
+    int option = Array.IndexOf(reportOptions, selectedOption);
 
-    return option; 
+    return option;
 }
+
+/* Boolean validateTxnInput(string stringToCheck)
+{
+    // check that the string contains the following (including the , seperator):
+    // txn date, from person, to person, narrative, and amount
+    string[] txnColumns = stringToCheck.Split(",");
+    try
+    {
+        DateOnly date = DateOnly.Parse(txnColumns[0]);
+        Decimal amt = Decimal.Parse(txnColumns[4]);
+        return true; // Valid date & amount columns
+    }
+    catch (ArgumentOutOfRangeException)
+    {
+        return false; // Invalid date & amount
+    };
+} */
+
 
 void InputNewTxns()
 {
-// Create a loop to read the input from user - need someway for the user to exit the loop after they have finished entering new transactions
-// read the input (txn date, from Person, to Person, Narrative, Ammount)
-// none of the columns can be null, 
-// if to/from person is not in people list, then ask user if they want to correct the input or it is a new person (if new, add to people list)
-// we can ask the user to read all fields from same line (fields seperated by ,)
+    // Create a loop to read the input from user - need someway for the user to exit the loop after they have finished entering new transactions
+    // read the input (txn date, from Person, to Person, Narrative, Ammount)
+    // none of the columns can be null, 
+    // if to/from person is not in people list, then ask user if they want to correct the input or it is a new person (if new, add to people list)
+    // we can ask the user to read all fields from same line (fields seperated by ,)
+    // check for duplication (txn data, to/from person , narrative need to be distinct)
 
-// if the txn data is the year that in any of the filenames from GetFileListFromDir(), then add the new transaction that file
-// else create a new txn file (csv format) - filename = data\Transactions<year>.csv + header record 
-// if year is before 2012, or year is 2014 or later, then format of file is CSV
-// if year is 2013, then format is json
-// if year is 2012, then format is xml
+    List<string> inputDataRows = new List<string>();
+    /*    string inputTxnRow;
+       Boolean txnValid;
+       Console.WriteLine("Enter transaction data as row (each column seperated by ,)");
+       Console.WriteLine("Enter 'done' on new row to finish inputting transaction data):");
+       while (true)
+       {
+           inputTxnRow = Console.ReadLine();
+           if (inputTxnRow == "done")
+           {
+               // user has finished inputting the txn rows
+               break;
+           }
+           // validate the txn input 
+           txnValid = validateTxnInput(inputTxnRow);
+           if (txnValid)
+           {
+               // data is valid - store it
+               inputDataRows.Add(inputTxnRow);
+           }
+           else
+           {
+               // input data not valid
+               Console.WriteLine($"Above row is incorrect - pls enter correct data or done to finish");
+           }
+       }; */
 
-// run reports for impact years that the user has entered new txns
+    // ***
+    // One thought is that we can store the people that we have read into another output file and use this for validation
+    // so that we don't have to read all the transaction files again
+    // ***
+
+    // create some dummy data
+    inputDataRows.Add("29/07/2014,Todd,Ben S,Lunch,10.29");
+    inputDataRows.Add("30/05/2013,Todd,Ben S,Breakfast,8.29");
+    inputDataRows.Add("30/01/2012,Kiran,Sasha,Going to Paris,7.58");
+    inputDataRows.Add("29/03/2014,Todd,Ben S,Lunch,10.29");
+    inputDataRows.Add("30/05/2013,Gergana I,Chris W<,Breakfast,8.29");
+    inputDataRows.Add("30/01/2012,Robert,Purbai,Afternoon Tea,45.58");
+    inputDataRows.Add("21/04/2015,Laura B,Sam N,Beers,5.13");
+    inputDataRows.Add("22/04/2015,Laura B,Sam N,Poker,6.99");
+    inputDataRows.Add("22/04/2016,Laura B,Sam N,Poker in 2012,6.99");
+
+    //string[] txnColumns = stringToCheck.Split(",");
+
+    // if the txn data is the year that in any of the filenames from GetFileListFromDir(), then add the new transaction that file
+    // else create a new txn file (csv format) - filename = data\Transactions<year>.csv + header record 
+    // if year is before 2012, or year is 2014 or later, then format of file is CSV
+    // if year is 2013, then format is json
+    // if year is 2012, then format is xml
+    List<string> filteredTxn2012 = inputDataRows.FindAll(txn => txn.AsSpan(0, 10).IndexOf("2012") != -1);
+    foreach (string txn in filteredTxn2012) { Console.WriteLine(txn); }
+    // ExportDataToXML(inputDataRows,".\\data\\Transactions2012.xml");
 
 }
 
 string GetFileNameFromDir()
 {
-    string directoryPath = "";
+    string? directoryPath = "";
     var log = LogManager.GetCurrentClassLogger();
     // get directory path
     // get list of data files from the path
@@ -167,12 +233,12 @@ string GetFileNameFromDir()
 string DropdownList(string[] listOfOptions)
 {
     Array.Resize(ref listOfOptions, listOfOptions.Length + 1);
-     listOfOptions[listOfOptions.Length - 1] = "Exit";
+    listOfOptions[listOfOptions.Length - 1] = "Exit";
 
     int selectedIndex = 0;
     Console.WriteLine($"Options List: {listOfOptions[listOfOptions.Length - 1]}");
 
-  ConsoleKey key;
+    ConsoleKey key;
     do
     {
         Console.Clear();
@@ -202,7 +268,7 @@ string DropdownList(string[] listOfOptions)
 
     } while (key != ConsoleKey.Enter);
 
-    Console.WriteLine($"You selected: {listOfOptions[selectedIndex]}");  
+    Console.WriteLine($"You selected: {listOfOptions[selectedIndex]}");
 
     return listOfOptions[selectedIndex];
 }
@@ -237,10 +303,18 @@ string GetExportFileName()
 {
     var log = LogManager.GetCurrentClassLogger();
     Console.WriteLine("Enter filename to export to (will generate CSV file)");
-    string fileName = Console.ReadLine();
+    string? fileName = Console.ReadLine();
     Console.WriteLine("Enter path to write the export file to ");
-    string filePath = Console.ReadLine();
-    int slashFound = filePath.LastIndexOf("\\");
+    string? filePath = Console.ReadLine();
+    int slashFound;
+    if (filePath == null)
+    {
+        slashFound = -1;
+    }
+    else
+    {
+        slashFound = filePath.LastIndexOf("\\");
+    }
     string exportFileName = "";
     if (slashFound != -1)
         exportFileName = string.Concat(filePath, fileName, ".csv");
@@ -283,6 +357,25 @@ int GetPersonName()
     return personId;  // return the person ID
 }
 
+void ExportDataToXML(List<string> inputDataRows, string fileName)
+{
+    string[] txnColumns;
+    string firstDate = "01/01/1900";
+    XmlDocument xd = new XmlDocument();
+    xd.Load(fileName);
+    XmlNode nl = xd.SelectSingleNode("//TransactionList");
+    XmlDocument xd2 = new XmlDocument();
+    foreach (var txn in inputDataRows)
+    {
+        txnColumns = txn.Split(",");
+        TimeSpan noOfDays = DateTime.Parse(txnColumns[0]) - DateTime.Parse(firstDate);
+        xd2.LoadXml($"<SupportTransaction Date=\"{noOfDays.Days}\"><Description>{txnColumns[3]}</Description><value>{txnColumns[4]}</value><Parties><From>{txnColumns[1]}</From><To>{txnColumns[2]}</To></Parties></SupportTransaction>");
+        XmlNode n = xd.ImportNode(xd2.FirstChild, true);
+        nl.AppendChild(n);
+    }
+    xd.Save(fileName);
+}
+
 void PrintReport(string listType, int personId, List<Transaction> txnList, List<Person> people, List<Account> accounts)
 {
 
@@ -321,7 +414,7 @@ void ReadCSVTxnFile(string filePath, List<Transaction> txnList)
             // check if value is decimal
             try
             {
-                var data = new Transaction
+/*                 var data = new Transaction
                 {
                     TxnDate = DateOnly.Parse(values[0]),
                     FromPerson = values[1],
@@ -329,7 +422,8 @@ void ReadCSVTxnFile(string filePath, List<Transaction> txnList)
                     Narrative = values[3],
                     Amount = Decimal.Parse(values[4])
                 };
-                txnList.Add(data);
+                txnList.Add(data); */
+                CreateTransaction(txnList,DateOnly.Parse(values[0]), values[3], values[1], values[2], Decimal.Parse(values[4]));
             }
             catch
             {
@@ -353,16 +447,16 @@ void ReadJsonFile(string filePath, List<Transaction> txnList)
         {
             try
             {
-                //Console.WriteLine($"{item.FromAccount}");
-                var data = new Transaction
-                {
-                    TxnDate = DateOnly.Parse(item.Date),
-                    FromPerson = item.FromAccount,
-                    ToPerson = item.ToAccount,
-                    Narrative = item.Narrative,
-                    Amount = item.Amount
-                };
-                txnList.Add(data);
+                // var data = new Transaction
+                // {
+                //     TxnDate = DateOnly.Parse(item.Date),
+                //     FromPerson = item.FromAccount,
+                //     ToPerson = item.ToAccount,
+                //     Narrative = item.Narrative,
+                //     Amount = item.Amount
+                // };
+                // txnList.Add(data);
+                CreateTransaction(txnList, DateOnly.Parse(item.Date), item.Narrative, item.FromAccount, item.ToAccount, item.Amount);
             }
             catch
             {
@@ -415,20 +509,36 @@ void readXMLFile(string filePath, List<Transaction> txnList)
             {
                 if (reader.Name.ToString() == "SupportTransaction")
                 {
-                    txnList.Add(
-                        new Transaction()
-                        {
-                            TxnDate = DateOnly.FromDateTime(convertedDate),
-                            Narrative = description,
-                            Amount = value,
-                            FromPerson = fromPerson,
-                            ToPerson = toPerson
-                        }
-                    );
+                    // txnList.Add(
+                    //     new Transaction()
+                    //     {
+                    //         TxnDate = DateOnly.FromDateTime(convertedDate),
+                    //         Narrative = description,
+                    //         Amount = value,
+                    //         FromPerson = fromPerson,
+                    //         ToPerson = toPerson
+                    //     }
+                    // );
+
+                    CreateTransaction(txnList,DateOnly.FromDateTime(convertedDate), description, fromPerson, toPerson, value);
                 }
             }
         }
     }
+}
+
+void CreateTransaction(List<Transaction> txnList,DateOnly date, string narrative, string fromPerson, string toPerson, decimal amt)
+{
+    txnList.Add(
+        new Transaction()
+        {
+            TxnDate = date,
+            Narrative = narrative,
+            Amount = amt,
+            FromPerson = fromPerson,
+            ToPerson = toPerson
+        }
+    );
 }
 
 void ExportPersonTxnToFile(string fileName, List<Transaction> txnList)
@@ -494,10 +604,19 @@ void CreateNewPerson(string personType, List<Transaction> txnList)
         sortedTxn = txnList.OrderBy(o => o.FromPerson).ToList();
     };
 
-    // List<Person> people = new List<Person>;
+    string nameToCheck = "";
+
     foreach (var transaction in sortedTxn)
     {
-        string nameToCheck = transaction.FromPerson;
+        if (personType == "To")
+        {
+            nameToCheck = transaction.ToPerson;
+        }
+        else
+        {
+            nameToCheck = transaction.FromPerson;
+        }
+
         bool nameExists = people.Any(p => p.Name == nameToCheck);
         // add the person if not exist (don't need to do anything with ID since we are autogenerating)
         if (!nameExists)
