@@ -339,11 +339,12 @@ int GetPersonName()
 {
     int personId = 0;
     Person person;
+    string personName ="";
     while (true)
     {
         // should try to do a dropdown list that user can select from - we already have the list of names in Person class
         Console.Write("Enter Person Name (enter Exit to quit): ");
-        string personName = Console.ReadLine();
+        personName = Console.ReadLine();
         // Exit entered hence quit
         if (personName == "Exit") break;
         // check if the person is valid by checking against people list
@@ -409,8 +410,8 @@ void ReadCSVTxnFile(string filePath, List<Transaction> txnList)
         reader.ReadLine();
         while (!reader.EndOfStream)
         {
-            var line = reader.ReadLine();
-            var values = line.Split(',');
+            var txnline = reader.ReadLine();
+            var txnvalues = txnline.Split(',');
             // check if value is decimal
             try
             {
@@ -423,12 +424,12 @@ void ReadCSVTxnFile(string filePath, List<Transaction> txnList)
                     Amount = Decimal.Parse(values[4])
                 };
                 txnList.Add(data); */
-                CreateTransaction(txnList,DateOnly.Parse(values[0]), values[3], values[1], values[2], Decimal.Parse(values[4]));
+                CreateTransaction(txnList,DateOnly.Parse(txnvalues[0]), txnvalues[3], txnvalues[1], txnvalues[2], Decimal.Parse(txnvalues[4]));
             }
             catch
             {
                 // we have some bad data in the file
-                log.Warn($"Invalid record -  date: {values[0]}, loan from person {values[1]} loaned to {values[2]} for {values[3]} amount: {values[4]} ");
+                log.Warn($"Invalid record -  date: {txnvalues[0]}, loan from person {txnvalues[1]} loaned to {txnvalues[2]} for {txnvalues[3]} amount: {txnvalues[4]} ");
                 Console.WriteLine("Found a bad row - Pls check the log\\SupportBank.log");
             };
         }
@@ -472,7 +473,7 @@ void readXMLFile(string filePath, List<Transaction> txnList)
 {
     DateTime convertedDate = new DateTime();
     string description = "";
-    decimal value = 0;
+    decimal amount = 0;
     string fromPerson = "";
     string toPerson = "";
 
@@ -493,7 +494,7 @@ void readXMLFile(string filePath, List<Transaction> txnList)
                         description = reader.ReadElementContentAsString();
                         break;
                     case "Value":
-                        value = reader.ReadElementContentAsDecimal();
+                        amount = reader.ReadElementContentAsDecimal();
                         break;
                     case "From":
                         fromPerson = reader.ReadElementContentAsString();
@@ -520,7 +521,7 @@ void readXMLFile(string filePath, List<Transaction> txnList)
                     //     }
                     // );
 
-                    CreateTransaction(txnList,DateOnly.FromDateTime(convertedDate), description, fromPerson, toPerson, value);
+                    CreateTransaction(txnList,DateOnly.FromDateTime(convertedDate), description, fromPerson, toPerson, amount);
                 }
             }
         }
